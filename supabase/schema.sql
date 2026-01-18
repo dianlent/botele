@@ -61,3 +61,11 @@ create index if not exists idx_products_category on products(category);
 create index if not exists idx_accounts_status on accounts(status);
 create index if not exists idx_orders_status on orders(status);
 create index if not exists idx_payments_status on payments(status);
+
+alter table admin_users enable row level security;
+
+create policy "admin_users_self_read"
+on admin_users
+for select
+to authenticated
+using (email = auth.email());

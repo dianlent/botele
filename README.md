@@ -4,7 +4,7 @@ Monorepo sederhana untuk webhook bot Telegram (Node/TypeScript) + dashboard admi
 
 ## Struktur
 - `apps/bot`: webhook bot Telegram
-- `apps/admin`: dashboard admin web
+- `apps/admin`: dashboard admin web (Next.js)
 - `supabase/schema.sql`: struktur database
 
 ## Setup cepat
@@ -40,3 +40,6 @@ Jalankan SQL di `supabase/schema.sql` pada Supabase SQL editor atau via migratio
 ## Catatan
 - Bot mendukung perintah `/start`, `/katalog`, `/order <product_id>`.
 - Untuk pembayaran otomatis, tambahkan integrasi gateway di backend.
+- Dashboard admin memakai Supabase Auth dan memverifikasi email di tabel `admin_users`.
+- Buat user di Supabase Auth lalu insert email-nya ke `admin_users` agar bisa login.
+- Pastikan env admin memakai `NEXT_PUBLIC_SUPABASE_URL` dan `NEXT_PUBLIC_SUPABASE_ANON_KEY`.

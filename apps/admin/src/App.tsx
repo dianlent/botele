@@ -1,3 +1,8 @@
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
+import type { Session } from "@supabase/supabase-js";
+import { supabase } from "./lib/supabase";
+
 const kpiData = [
   { label: "Revenue Bulan Ini", value: "Rp 48.2Jt", delta: "+18%" },
   { label: "Order Hari Ini", value: "124", delta: "+12" },
@@ -11,7 +16,140 @@ const orderRows = [
   { id: "ORD-2399", product: "Canva Pro", status: "delivered", total: "Rp 35.000" }
 ];
 
+type AdminProfile = {
+  id: string;
+  full_name: string | null;
+};
+
 export default function App() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [admin, setAdmin] = useState<AdminProfile | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading">("idle");
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const init = async () => {
+      const { data } = await supabase.auth.getSession();
+      setSession(data.session ?? null);
+    };
+
+    void init();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => {
+        setSession(newSession);
+      }
+    );
+
+    return () => authListener.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    const loadAdmin = async () => {
+      if (!session?.user?.email) {
+        setAdmin(null);
+        return;
+      }
+
+      const { data, error: adminError } = await supabase
+        .from("admin_users")
+        .select("id,full_name")
+        .eq("email", session.user.email)
+        .maybeSingle();
+
+      if (adminError || !data) {
+        await supabase.auth.signOut();
+        setAdmin(null);
+        setError("Email tidak terdaftar sebagai admin.");
+        return;
+      }
+
+      setAdmin(data as AdminProfile);
+    };
+
+    void loadAdmin();
+  }, [session]);
+
+  const handleLogin = async (event: FormEvent) => {
+    event.preventDefault();
+    setStatus("loading");
+    setError(null);
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (signInError) {
+      setError("Login gagal. Periksa email atau password.");
+    }
+
+    setStatus("idle");
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setAdmin(null);
+    setSession(null);
+  };
+
+  if (!session) {
+    return (
+      <div className="auth-shell">
+        <div className="auth-card">
+          <div className="brand brand--auth">
+            <span className="brand__mark">BT</span>
+            <div>
+              <p className="brand__title">Bot Premium</p>
+              <p className="brand__subtitle">Admin Login</p>
+            </div>
+          </div>
+          <p className="auth-desc">
+            Masuk menggunakan akun admin yang terdaftar di Supabase.
+          </p>
+          <form className="auth-form" onSubmit={handleLogin}>
+            <label>
+              Email
+              <input
+                type="email"
+                placeholder="admin@email.com"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                required
+              />
+            </label>
+            <label>
+              Password
+              <input
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+              />
+            </label>
+            {error && <p className="auth-error">{error}</p>}
+            <button className="btn btn--primary btn--block" disabled={status === "loading"}>
+              {status === "loading" ? "Memproses..." : "Masuk"}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  if (!admin) {
+    return (
+      <div className="auth-shell">
+        <div className="auth-card">
+          <p className="auth-desc">Memeriksa akun admin...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -33,8 +171,11 @@ export default function App() {
           <button className="nav__item">Pengaturan</button>
         </nav>
         <div className="sidebar__note">
-          <p>Webhook aktif</p>
-          <strong>24/7</strong>
+          <p>Login sebagai</p>
+          <strong>{admin.full_name || session.user.email}</strong>
+          <button className="btn btn--ghost btn--small" onClick={handleLogout}>
+            Logout
+          </button>
         </div>
       </aside>
 
