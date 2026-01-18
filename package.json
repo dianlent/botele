@@ -1,0 +1,13 @@
+{
+  "name": "bot-tele",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:bot": "npm run dev --workspace apps/bot",
+    "dev:admin": "npm run dev --workspace apps/admin",
+    "build": "npm run build --workspace apps/bot && npm run build --workspace apps/admin",
+    "lint": "npm run lint --workspace apps/bot && npm run lint --workspace apps/admin"
+  }
+}
